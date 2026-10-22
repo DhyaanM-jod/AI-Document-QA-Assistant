@@ -54,6 +54,14 @@ Open http://127.0.0.1:5000, upload a text-based PDF, then ask questions.
 - ChatOllama sends the retrieved context to the local Ollama model.
 - Flask displays the answer and source page references.
 
+
+## Application Screenshot
+
+Here is a preview of the AI Document Q&A Assistant.
+
+![AI Document Q&A Assistant Demo](screenshots/app-demo.png)
+
+
 ## Notes
 - This is a local learning prototype, not production-ready or multi-user.
 - One uploaded document index is held in memory; uploading a new PDF replaces the previous one.
