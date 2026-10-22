@@ -59,7 +59,7 @@ Open http://127.0.0.1:5000, upload a text-based PDF, then ask questions.
 
 Here is a preview of the AI Document Q&A Assistant.
 
-![AI Document Q&A Assistant Demo](screenshot/app-demo.png)
+![AI Document Q&A Assistant Demo](screenShot/app-demo.png)
 
 
 ## Notes
