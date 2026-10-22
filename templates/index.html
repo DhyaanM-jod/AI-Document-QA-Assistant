@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Document Q&A Assistant</title>
+  <style>
+    :root { font-family: Inter, system-ui, Arial, sans-serif; color: #172033; background: #f4f6fa; }
+    * { box-sizing: border-box; } body { margin: 0; }
+    main { max-width: 850px; margin: 36px auto; padding: 0 18px 40px; }
+    .hero, .panel { background: white; border: 1px solid #e0e5ee; border-radius: 16px; padding: 22px; margin-bottom: 16px; }
+    h1 { margin: 0 0 8px; font-size: clamp(25px, 4vw, 34px); }
+    .muted { color: #667085; line-height: 1.5; }
+    label { display: block; font-weight: 650; margin: 12px 0 8px; }
+    input[type=file], input[type=text] { width: 100%; padding: 12px; border: 1px solid #cfd6e2; border-radius: 10px; background: white; }
+    button { margin-top: 12px; border: 0; border-radius: 10px; padding: 11px 16px; background: #1e3a5f; color: white; font-weight: 650; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: wait; }
+    .status { margin-top: 12px; font-size: 14px; white-space: pre-wrap; }
+    .answer { white-space: pre-wrap; line-height: 1.6; margin-top: 10px; }
+    .source { display: inline-block; background: #edf2f8; border-radius: 7px; padding: 5px 8px; margin: 6px 5px 0 0; font-size: 13px; }
+    .error { color: #b42318; } .success { color: #067647; }
+    footer { font-size: 12px; color: #667085; text-align: center; margin-top: 18px; }
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>AI-powered Document Q&amp;A</h1>
+    <p class="muted">Upload a PDF, ask a question, and get an answer grounded in the document with page references. Answer generation runs locally with Ollama.</p>
+  </section>
+  <section class="panel">
+    <h2>1. Upload a document</h2>
+    <form id="uploadForm">
+      <label for="pdf">PDF file (up to 15 MB)</label>
+      <input id="pdf" name="pdf" type="file" accept=".pdf,application/pdf" required>
+      <button id="uploadButton" type="submit">Upload and index PDF</button>
+    </form>
+    <div id="uploadStatus" class="status"></div>
+  </section>
+  <section class="panel">
+    <h2>2. Ask a question</h2>
+    <form id="questionForm">
+      <label for="question">Your question</label>
+      <input id="question" type="text" placeholder="e.g. What are the main conclusions?" required>
+      <button id="askButton" type="submit">Ask question</button>
+    </form>
+    <div id="answerStatus" class="status"></div>
+    <div id="answer" class="answer"></div>
+    <div id="sources"></div>
+  </section>
+  <footer>Local learning prototype. Avoid uploading confidential or sensitive documents.</footer>
+</main>
+<script>
+  const uploadForm = document.getElementById("uploadForm");
+  const questionForm = document.getElementById("questionForm");
+  uploadForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = document.getElementById("uploadButton");
+    const status = document.getElementById("uploadStatus");
+    button.disabled = true; status.className = "status";
+    status.textContent = "Uploading and indexing PDF. The first run may take longer while the embedding model downloads.";
+    try {
+      const response = await fetch("/upload", { method: "POST", body: new FormData(uploadForm) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Upload failed.");
+      status.className = "status success";
+      status.textContent = `${data.message}\nPages: ${data.pages} | Text chunks: ${data.chunks}`;
+    } catch (error) {
+      status.className = "status error"; status.textContent = error.message;
+    } finally { button.disabled = false; }
+  });
+  questionForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = document.getElementById("askButton");
+    const status = document.getElementById("answerStatus");
+    const answer = document.getElementById("answer");
+    const sources = document.getElementById("sources");
+    button.disabled = true; status.className = "status";
+    status.textContent = "Searching the document and generating an answer locally...";
+    answer.textContent = ""; sources.replaceChildren();
+    try {
+      const response = await fetch("/ask", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: document.getElementById("question").value })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Question failed.");
+      status.textContent = ""; answer.textContent = data.answer;
+      data.sources.forEach(source => {
+        const tag = document.createElement("span"); tag.className = "source";
+        tag.textContent = `${source.file} — page ${source.page}`; sources.appendChild(tag);
+      });
+    } catch (error) {
+      status.className = "status error"; status.textContent = error.message;
+    } finally { button.disabled = false; }
+  });
+</script>
+</body>
+</html>
